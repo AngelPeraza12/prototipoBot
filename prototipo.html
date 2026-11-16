@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central de Pagos UNAL — Auditoría y Liquidación (Prototipo)</title>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --accent: #15803d;
+      --accent-hover: #166534;
+      --input-bg: #f9fafb;
+      --pill-bg: #dcfce7;
+      --pill-text: #166534;
+      --neto-bg: #f0fdf4;
+      --trama-bg: #1e293b;
+      --trama-text: #38bdf8;
+    }
+
+    body.dark {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #334155;
+      --accent: #22c55e;
+      --accent-hover: #16a34a;
+      --input-bg: #0f172a;
+      --pill-bg: #14532d;
+      --pill-text: #86efac;
+      --neto-bg: #052e16;
+      --trama-bg: #020617;
+      --trama-text: #4ade80;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); transition: background 0.2s, color 0.2s; padding: 20px; }
+    .app { max-width: 1150px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+    /* Header */
+    .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: var(--card); padding: 14px 20px; border-radius: 10px; border: 1px solid var(--border); }
+    .header h1 { margin: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 8px; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .btn-theme { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+    .status-pill { background: var(--pill-bg); color: var(--pill-text); padding: 5px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+
+    /* Cards & Grids */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .card-title { font-weight: 700; font-size: 0.95rem; margin: 0 0 14px 0; color: var(--accent); text-transform: uppercase; letter-spacing: 0.03em; }
+    .card-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+
+    label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); font-size: 0.9rem; }
+    input:focus, select:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+    .input-row { display: grid; grid-template-columns: 2.5fr 1fr 0.9fr auto; gap: 12px; align-items: end; }
+    .btn-exec { background: var(--accent); color: #fff; border: none; padding: 9px 18px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.9rem; height: 37px; }
+    .btn-exec:hover { background: var(--accent-hover); }
+
+    /* Meta Banner */
+    .meta-banner { margin-top: 14px; padding: 10px 14px; background: var(--input-bg); border: 1px dashed var(--border); border-radius: 6px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 0.85rem; }
+    .badge-estampilla { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; margin-left: 6px; }
+
+    /* Two Columns */
+    .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .toggle-group { display: flex; gap: 4px; }
+    .toggle-btn { padding: 4px 10px; font-size: 0.75rem; font-weight: 700; border: 1px solid var(--border); background: var(--input-bg); color: var(--muted); border-radius: 5px; cursor: pointer; }
+    .toggle-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .c14-box { font-weight: 700; letter-spacing: 0.04em; margin-bottom: 12px; text-transform: uppercase; }
+    .mini-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+    .mini-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
+
+    .ceco-box { background: var(--input-bg); padding: 10px 12px; border-radius: 6px; border-left: 4px solid var(--accent); min-height: 46px; display: flex; flex-direction: column; justify-content: center; }
+    .ceco-main { font-weight: 700; font-size: 0.85rem; }
+    .ceco-act { font-size: 0.78rem; color: var(--muted); }
+
+    /* Financial */
+    .fin-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+    .desc-group { display: flex; gap: 6px; }
+    .btn-preset { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .btn-preset:hover { border-color: var(--accent); color: var(--accent); }
+
+    .neto-display { background: var(--neto-bg); border: 1px solid var(--accent); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .neto-label, .trama-label { display: block; font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+    .neto-val { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+    .neto-raw { font-family: monospace; font-size: 1.1rem; font-weight: 700; }
+
+    details { border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 0.85rem; }
+    summary { cursor: pointer; font-weight: 600; color: var(--muted); }
+    .aux-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .aux-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .aux-table td { padding: 4px 6px; border-bottom: 1px solid var(--border); }
+    .aux-table td:last-child { text-align: right; font-family: monospace; font-weight: 600; }
+    .ss-total { margin-top: 8px; font-weight: 700; font-size: 0.85rem; text-align: right; color: var(--accent); }
+
+    /* Output Footer */
+    .output-card { background: var(--card); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .output-caption { font-size: 0.78rem; font-weight: 700; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
+    .output-text { background: var(--trama-bg); color: var(--trama-text); font-family: 'Consolas', 'Courier New', monospace; font-size: 1rem; padding: 12px 14px; border-radius: 6px; word-break: break-all; font-weight: 700; letter-spacing: 0.03em; }
+    .output-actions { display: flex; gap: 8px; }
+    .btn-copy { background: var(--accent); color: #fff; border: none; padding: 10px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+    .btn-copy:hover { background: var(--accent-hover); }
+    .btn-clear { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 10px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-clear:hover { color: var(--text); border-color: var(--text); }
+
+    .demo-hint { font-size: 0.78rem; color: var(--muted); text-align: center; }
+
+    @media (max-width: 820px) {
+      .input-row, .two-cols { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Encabezado -->
+  <header class="header">
+    <h1>BOT Central de Pagos — UNAL</h1>
+    <div class="header-right">
+      <button type="button" id="btnTheme" class="btn-theme">🌙 Modo Noche</button>
+      <span id="dbStatus" class="status-pill">Prototipo Interactivo • Modo Simulación</span>
+    </div>
+  </header>
+
+  <!-- Paso 1: Entradas y Botón Ejecutar -->
+  <section class="card">
+    <p class="card-title">1. Datos de Entrada</p>
+    <div class="input-row">
+      <div>
+        <label id="lblB9" for="b9">Fórmula de Liquidación (Web Central de Pagos)</label>
+        <input type="text" id="b9" placeholder="Pega aquí la fórmula o pulsa ▶ Ejecutar para cargar un ejemplo...">
+      </div>
+      <div>
+        <label for="f11">CASE (ID de Carga)</label>
+        <input type="text" id="f11" class="input-case" placeholder="Ej: 887818">
+      </div>
+      <div>
+        <label for="b21">Estado</label>
+        <select id="b21">
+          <option value="BOT">BOT</option>
+          <option value="MANUAL">MANUAL</option>
+          <option value="SINBOT">SINBOT</option>
+        </select>
+      </div>
+      <div>
+        <button type="button" id="btnExec" class="btn-exec">▶ Ejecutar</button>
+      </div>
+    </div>
+
+    <div id="metaBanner" class="meta-banner">
+      <span><strong>Solicitante:</strong> <span id="metaSolicitante">-</span></span>
+      <span>
+        <strong>Contrato:</strong>
+        <span id="metaContrato">-</span>
+        <span id="metaEstampilla" class="badge-estampilla" style="display:none;">⚠️ TIENE ESTAMPILLA</span>
+      </span>
+      <span><strong>Archivo:</strong> <span id="metaArchivo">-</span></span>
+    </div>
+  </section>
+
+  <!-- Paso 2: Auditoría de Pago y Valores -->
+  <section class="two-cols">
+
+    <!-- Izquierda: Línea de Pago y Códigos -->
+    <div class="card">
+      <div class="card-header-flex">
+        <p class="card-title" style="margin:0;">2. Línea de Pago y Clasificación</p>
+        <div class="toggle-group">
+          <button type="button" id="btnModoNum" class="toggle-btn active">PAGO N°</button>
+          <button type="button" id="btnModoFin" class="toggle-btn">PAGO FINAL</button>
+        </div>
+      </div>
+
+      <input type="text" id="c14" class="c14-box" placeholder="PAGO 9 PL 96794424 OCT 2026">
+
+      <div class="mini-grid-4">
+        <div><label for="g13">N° Pago</label><input type="text" id="g13" placeholder="9"></div>
+        <div><label for="g14">Planilla (PL)</label><input type="text" id="g14" placeholder="96794424"></div>
+        <div><label for="g15">Mes</label><input type="text" id="g15" placeholder="Octubre"></div>
+        <div><label for="g16">Año</label><input type="text" id="g16" placeholder="2026"></div>
+      </div>
+
+      <div class="mini-grid-5">
+        <div><label for="d15">Liq.</label><input type="text" id="d15" placeholder="91"></div>
+        <div><label for="d16">Tipo</label><input type="text" id="d16" placeholder="K"></div>
+        <div><label for="d17">Concepto</label><input type="text" id="d17" placeholder="KS8"></div>
+        <div><label for="d18">CeCo</label><input type="text" id="d18" placeholder="2111503"></div>
+        <div><label for="d19">ICA</label><input type="text" id="d19" placeholder="74902"></div>
+      </div>
+
+      <!-- Descripción y Actividad del CeCo -->
+      <div id="cecoBox" class="ceco-box">
+        <span id="cecoDesc" class="ceco-main">Ingrese un CeCo o ejecute una consulta para ver la dependencia</span>
+        <span id="cecoAct" class="ceco-act">Actividad económica asociada</span>
+      </div>
+    </div>
+
+    <!-- Derecha: Liquidación Financiera -->
+    <div class="card">
+      <p class="card-title">3. Validación de Valores</p>
+      <div class="fin-row">
+        <div>
+          <label for="c27">Valor Solicitud ($)</label>
+          <input type="text" id="c27" class="input-money" placeholder="0">
+        </div>
+        <div>
+          <label for="c28">Descuentos ($)</label>
+          <div class="desc-group">
+            <input type="text" id="c28" class="input-money" placeholder="0">
+            <button type="button" id="btnPreset499" class="btn-preset" title="Aplicar descuento de $499.000">499.000</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="neto-display">
+        <div>
+          <span class="neto-label">Valor Neto a Pagar</span>
+          <span id="c20" class="neto-val">$ 0</span>
+        </div>
+        <div style="text-align:right;">
+          <span class="trama-label">Valor en Trama</span>
+          <span id="d20" class="neto-raw">0</span>
+        </div>
+      </div>
+
+      <details open>
+        <summary>Herramientas auxiliares (Tarifas ICA / Salud y Pensión)</summary>
+        <div class="aux-grid">
+          <table class="aux-table">
+            <tr><td>0,00766</td><td id="c33">0</td></tr>
+            <tr><td>0,00966</td><td id="c34">0</td></tr>
+            <tr><td>0,01104</td><td id="c35">0</td></tr>
+            <tr><td class="muted-cell">32 UVT Max</td><td>1.675.968</td></tr>
+          </table>
+          <div>
+            <label for="g27">Salud ($)</label>
+            <input type="text" id="g27" class="input-ss" placeholder="0">
+            <label for="g28" style="margin-top:6px;">Pensión ($)</label>
+            <input type="text" id="g28" class="input-ss" placeholder="0">
+            <div class="ss-total">
+              Total SS: <span id="g29">0</span>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+  </section>
+
+  <!-- Paso 3: Trama Final -->
+  <footer class="output-card">
+    <div style="flex:1; min-width: 280px;">
+      <div class="output-caption">Trama Generada (Lista para pegar en Notas de Central de Pagos)</div>
+      <div id="c23" class="output-text">APROBADO||||||||||||||</div>
+    </div>
+    <div class="output-actions">
+      <button type="button" id="btnCopy" class="btn-copy">📋 Copiar Trama</button>
+      <button type="button" id="btnClear" class="btn-clear">Limpiar</button>
+    </div>
+  </footer>
+
+  <p class="demo-hint">💡 Tip para evaluación: Haz clic en <strong>▶ Ejecutar</strong> con los campos vacíos para cargar automáticamente una orden de prueba, o edita cualquier campo para ver cómo se actualiza la trama en tiempo real.</p>
+
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let modoPago = "NUM";
+
+  // Catálogo simulado de CeCos UNAL
+  const catalogoCeco = {
+    "2111503": { desc: "FACULTAD DE INGENIERÍA - SEDE BOGOTÁ", act: "Actividad 74902 • Servicios técnicos y profesionales" },
+    "2010101": { desc: "VICERRECTORÍA ACADÉMICA - NIVEL NACIONAL", act: "Actividad 85440 • Educación superior" },
+    "3040210": { desc: "DIRECCIÓN DE INVESTIGACIÓN Y EXTENSIÓN", act: "Actividad 72100 • Investigación y desarrollo experimental" }
+  };
+
+  const limpiarNumero = (val) => {
+    const num = parseInt(String(val).replace(/\D/g, ""), 10);
+    return isNaN(num) ? 0 : num;
+  };
+
+  const formatearMoneda = (num) => num.toLocaleString("es-CO");
+
+  function actualizarLineaPago() {
+    const num = $("g13").value.trim();
+    const pl = $("g14").value.trim();
+    const mes = $("g15").value.trim().slice(0, 3).toUpperCase();
+    const anio = $("g16").value.trim();
+
+    if (modoPago === "FINAL") {
+      $("c14").value = `PAGO FINAL ${pl ? "PL " + pl : ""} ${mes} ${anio}`.replace(/\s+/g, " ").trim();
+    } else {
+      $("c14").value = `${num ? "PAGO " + num : ""} ${pl ? "PL " + pl : ""} ${mes} ${anio}`.replace(/\s+/g, " ").trim();
+    }
+    generarTrama();
+  }
+
+  function actualizarCeco() {
+    const code = $("d18").value.trim();
+    if (catalogoCeco[code]) {
+      $("cecoDesc").textContent = catalogoCeco[code].desc;
+      $("cecoAct").textContent = catalogoCeco[code].act;
+    } else if (code) {
+      $("cecoDesc").textContent = `DEPENDENCIA UNAL — CÓDIGO ${code}`;
+      $("cecoAct").textContent = "Centro de costos validado en estructura";
+    } else {
+      $("cecoDesc").textContent = "Ingrese un CeCo o ejecute una consulta para ver la dependencia";
+      $("cecoAct").textContent = "Actividad económica asociada";
+    }
+  }
+
+  function recalcularFinanzas() {
+    const solicitud = limpiarNumero($("c27").value);
+    const descuentos = limpiarNumero($("c28").value);
+    const neto = Math.max(0, solicitud - descuentos);
+
+    $("c20").textContent = "$ " + formatearMoneda(neto);
+    $("d20").textContent = neto;
+
+    // Tarifas ICA auxiliares
+    $("c33").textContent = formatearMoneda(Math.round(neto * 0.00766));
+    $("c34").textContent = formatearMoneda(Math.round(neto * 0.00966));
+    $("c35").textContent = formatearMoneda(Math.round(neto * 0.01104));
+
+    // Seguridad Social
+    const salud = limpiarNumero($("g27").value);
+    const pension = limpiarNumero($("g28").value);
+    $("g29").textContent = formatearMoneda(salud + pension);
+
+    generarTrama();
+  }
+
+  function generarTrama() {
+    const estado = $("b21").value;
+    const caso = $("f11").value.trim();
+    const linea = $("c14").value.trim();
+    const liq = $("d15").value.trim();
+    const tipo = $("d16").value.trim();
+    const concepto = $("d17").value.trim();
+    const ceco = $("d18").value.trim();
+    const ica = $("d19").value.trim();
+    const neto = $("d20").textContent.trim();
+    const contrato = $("metaContrato").textContent !== "-" ? $("metaContrato").textContent : "";
+
+    const campos = [
+      "APROBADO",
+      estado,
+      caso,
+      contrato,
+      linea,
+      liq,
+      tipo,
+      concepto,
+      ceco,
+      ica,
+      neto
+    ];
+
+    $("c23").textContent = campos.join("|");
+  }
+
+  // Botón Ejecutar (Parsea fórmula o carga caso de prueba)
+  $("btnExec").addEventListener("click", () => {
+    const raw = $("b9").value.trim();
+
+    if (!raw) {
+      // Cargar ejemplo completo si está vacío
+      $("b9").value = "FORMULA DE LIQUIDACIÓN: 91 - SIN IVA, TIPO: K, CONCEPTO: KS8, CECO: 2111503, ICA: 74902";
+      $("f11").value = "887818";
+      $("metaSolicitante").textContent = "CARLOS ANDRÉS GÓMEZ (CC 1020789456)";
+      $("metaContrato").textContent = "ODS-2026-0412";
+      $("metaEstampilla").style.display = "inline-block";
+      $("metaArchivo").textContent = "acta_pago_09_oct2026.pdf";
+
+      $("g13").value = "9";
+      $("g14").value = "96794424";
+      $("g15").value = "Octubre";
+      $("g16").value = "2026";
+
+      $("d15").value = "91";
+      $("d16").value = "K";
+      $("d17").value = "KS8";
+      $("d18").value = "2111503";
+      $("d19").value = "74902";
+
+      $("c27").value = "4.850.000";
+      $("c28").value = "499.000";
+      $("g27").value = "242.500";
+      $("g28").value = "310.400";
+    } else {
+      // Extraer patrones si pegaron texto real
+      const mLiq = raw.match(/LIQUIDACI[OÓ]N:\s*(\d+)/i);
+      const mTipo = raw.match(/TIPO:\s*([A-Z0-9]+)/i);
+      const mConc = raw.match(/CONCEPTO:\s*([A-Z0-9]+)/i);
+      const mCeco = raw.match(/CECO:\s*(\d+)/i);
+      const mIca = raw.match(/ICA:\s*(\d+)/i);
+
+      if (mLiq) $("d15").value = mLiq[1];
+      if (mTipo) $("d16").value = mTipo[1];
+      if (mConc) $("d17").value = mConc[1];
+      if (mCeco) $("d18").value = mCeco[1];
+      if (mIca) $("d19").value = mIca[1];
+
+      $("metaSolicitante").textContent = "SOLICITANTE VALIDADO EN SESIÓN";
+      $("metaContrato").textContent = "CTO-2026-SIM";
+      $("metaArchivo").textContent = "soporte_cargado.pdf";
+    }
+
+    actualizarCeco();
+    actualizarLineaPago();
+    recalcularFinanzas();
+  });
+
+  // Eventos en tiempo real
+  ["g13", "g14", "g15", "g16"].forEach(id => $(id).addEventListener("input", actualizarLineaPago));
+  ["c14", "d15", "d16", "d17", "d19", "f11", "b21"].forEach(id => $(id).addEventListener("input", generarTrama));
+  $("d18").addEventListener("input", () => { actualizarCeco(); generarTrama(); });
+  ["c27", "c28", "g27", "g28"].forEach(id => $(id).addEventListener("input", recalcularFinanzas));
+
+  $("btnPreset499").addEventListener("click", () => {
+    $("c28").value = "499.000";
+    recalcularFinanzas();
+  });
+
+  $("btnModoNum").addEventListener("click", () => {
+    modoPago = "NUM";
+    $("btnModoNum").classList.add("active");
+    $("btnModoFin").classList.remove("active");
+    actualizarLineaPago();
+  });
+
+  $("btnModoFin").addEventListener("click", () => {
+    modoPago = "FINAL";
+    $("btnModoFin").classList.add("active");
+    $("btnModoNum").classList.remove("active");
+    actualizarLineaPago();
+  });
+
+  $("btnTheme").addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+    $("btnTheme").textContent = document.body.classList.contains("dark") ? "☀️ Modo Día" : "🌙 Modo Noche";
+  });
+
+  $("btnCopy").addEventListener("click", () => {
+    const trama = $("c23").textContent;
+    navigator.clipboard.writeText(trama).then(() => {
+      const original = $("btnCopy").textContent;
+      $("btnCopy").textContent = "✅ ¡Trama Copiada!";
+      setTimeout(() => $("btnCopy").textContent = original, 1800);
+    });
+  });
+
+  $("btnClear").addEventListener("click", () => {
+    document.querySelectorAll("input").forEach(inp => inp.value = "");
+    $("metaSolicitante").textContent = "-";
+    $("metaContrato").textContent = "-";
+    $("metaArchivo").textContent = "-";
+    $("metaEstampilla").style.display = "none";
+    actualizarCeco();
+    recalcularFinanzas();
+    $("c23").textContent = "APROBADO||||||||||||||";
+  });
+</script>
+</body>
+</html>
